@@ -1,0 +1,37 @@
+# Agent Manifest — AgentRegistry entry point
+# AgentRegistry (mediator/registry/agent_registry.py) reads every key below at
+# ROOT level — do NOT nest keys under an `agent:` block.
+id: "CMN-C2-276"
+name: "KintoneAppRecordAgent"
+namespace: "cmn"
+version: "0.1.0"
+enabled: true
+category: "Cat 2"
+# Static generation contract: an LLM (Azure OpenAI) is an optional enhancement
+# over InferKintoneFieldsNode's deterministic regex baseline for record_title +
+# custom record fields; it degrades to that baseline on any resolution/call
+# failure (src/nodes/infer_kintone_fields_node.py, Step 8e). app_id/record_no
+# stay deterministic-only in every case — never LLM-derived (see the node's
+# own risk-mitigation note: an id must never be invented).
+generation_mode: "llm"  # deterministic | llm
+industry: "CMN"
+
+base_type: "ToolCallingAgent"
+
+# Entry point — single dotted import path (module.Class), NOT split module:/class:.
+class: "src.graph.graph.KintoneAppRecordAgent"
+
+required_trust_level: "VERIFIED_EXTERNAL"
+
+# Compile-time gates — declare every ctx.secrets.require() key + constructed extra.
+# AZURE_OPENAI_API_KEY / AZURE_OPENAI_ENDPOINT / AZURE_OPENAI_DEPLOYMENT are
+# deliberately NOT under requires.secrets, mirroring the ANTHROPIC_API_KEY
+# precedent elsewhere in this scaffold: that field is enforced via
+# require_at_compile() (hard-fail if absent, mediator/registry/agent_registry.py),
+# but InferKintoneFieldsNode reads them via ctx.secrets.require() only inside
+# execute() and degrades gracefully to the deterministic baseline on any
+# failure — declaring them here would contradict that graceful-degrade contract
+# and 503 registry-based compiles that must boot key-less.
+requires:
+  secrets: []
+  extras: ["openai"]  # AzureOpenAIClient wraps langchain_openai.ChatOpenAI
